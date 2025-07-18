@@ -1,0 +1,2 @@
+[ 2025-07-19 01:14:42,733 ] root - INFO - unsupported operand type(s) for +: 'int' and 'str'
+[ 2025-07-19 01:14:42,734 ] root - ERROR - Error occurred in python script: [/Users/apple/Documents/abc/my_first_project/demo.py] at line number [17]: unsupported operand type(s) for +: 'int' and 'str'
