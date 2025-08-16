@@ -29,11 +29,23 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
+          IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Build image with commit SHA tag
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          # Push SHA-tagged image
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+          # Also tag and push as latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Export image reference for deployment
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
 
   Continuous-Deployment:
     needs: Continuous-Integration
@@ -56,7 +68,12 @@ jobs:
 
       - name: Stop old container (if running)
         run: |
-          docker ps -q --filter "ancestor=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest" | xargs -r docker stop
+          docker ps -q --filter "ancestor=${{ needs.Continuous-Integration.outputs.image }}" | xargs -r docker stop
+
+      - name: Clean up old containers and images
+        run: |
+          docker container prune -f
+          docker image prune -f
 
       - name: Run Docker Image to serve users
         run: |
@@ -66,4 +83,4 @@ jobs:
             -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
             -e MONGODB_URL="${{ secrets.MONGODB_URL }}" \
             -p 8000:8000 \
-            "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest"
+            "${{ needs.Continuous-Integration.outputs.image }}"
