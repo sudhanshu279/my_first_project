@@ -52,9 +52,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      # ✅ New step: Cleanup old containers before running new one
-      - name: Stop and remove old containers
-        run: docker rm -f $(docker ps -aq) || true
+      
 
       - name: Run Docker Image to serve users
         run: |
