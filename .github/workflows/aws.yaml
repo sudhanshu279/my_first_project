@@ -2,14 +2,15 @@ name: Deploy Application Docker Image to EC2 instance
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   Continuous-Integration:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -23,12 +24,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, tag, and push Docker image
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -37,12 +38,13 @@ jobs:
   Continuous-Deployment:
     needs: Continuous-Integration
     runs-on: self-hosted
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -50,16 +52,27 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
-      
+      - name: Stop and remove existing container
+        run: |
+          docker stop app || true
+          docker rm app || true
 
-      - name: Run Docker Image to serve users
+      - name: Pull latest Docker image
+        run: |
+          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:${{ github.sha }}
+
+      - name: Run Docker container
         run: |
           docker run -d \
-            -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
-            -e MONGODB_URL="${{ secrets.MONGODB_URL }}" \
-            -p 5000:5000 \
-            "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest 
+            --name app \
+            --restart unless-stopped \
+            --env-file .env \
+            -p 8000:8000 \
+            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:${{ github.sha }}
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f http://localhost:8000/health || exit 1
