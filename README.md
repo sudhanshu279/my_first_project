@@ -54,9 +54,7 @@ Setting Environment Variables
 Set MongoDB URL:
 # For Bash
 export MONGODB_URL="mongodb+srv://<username>:<password>...."
-# For Powershell
-$env:MONGODB_URL = "mongodb+srv://<username>:<password>...."
-Note: On Windows, you can also set environment variables through the system settings.
+
 🔍 Data Validation, Transformation & Model Training
 
 Step 9: Data Validation
