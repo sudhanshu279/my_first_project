@@ -91,6 +91,7 @@ Step 14: Model Evaluation & Model Pusher
 
 Implement model evaluation and deployment components.
 Create Prediction Pipeline and set up app.py for API integration.
+
 Step 15: Static and Template Directory
 
 Add static and template directories for web UI.
@@ -104,15 +105,17 @@ AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 ECR_REPO
+
 Step 17: AWS EC2 and ECR
 
 Set up an EC2 instance for deployment.
 Install Docker on the EC2 machine.
 Connect EC2 as a self-hosted runner on GitHub.
+
 Step 18: Final Steps
 
-Open the 5080 port on the EC2 instance.
-Access the deployed app by visiting http://<public_ip>:5080.
+Open the 8000 port on the EC2 instance.
+Access the deployed app by visiting http://<public_ip>:8000.
 🛠️ Additional Resources
 
 Crash Course on setup.py and pyproject.toml: See crashcourse.txt for details.
